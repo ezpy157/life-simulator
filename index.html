@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>现生模拟器</title>
+<style>
+body{margin:0;background:#f0f0f0;font-family:Microsoft YaHei;}
+#top{background:#111;color:#fff;padding:10px;display:flex;justify-content:space-between}
+#wrap{display:flex;height:calc(100vh - 50px);}
+#left{width:220px;background:#fff;border-right:1px solid #ddd;padding:10px;box-sizing:border-box;overflow:auto}
+#right{flex:1;padding:20px;overflow:auto}
+.card{background:#fff;padding:20px;border-radius:8px;box-shadow:0 0 6px rgba(0,0,0,.05)}
+.btn,.action{
+display:block;width:100%;margin:6px 0;padding:8px;border:none;
+border-radius:6px;color:#fff;cursor:pointer;transition:.2s
+}
+.action{width:auto;display:inline-block}
+.btn:hover,.action:hover{transform:translateY(-2px)}
+h3{margin-top:0}
+</style>
+</head>
+<body>
+
+<div id="top">
+<div id="status"></div>
+<button class="action" onclick="nextMonth()">进入下个月</button>
+</div>
+
+<div id="wrap">
+<div id="left">
+<button class="btn" onclick="panel('人物')">人物</button>
+<button class="btn" onclick="panel('家庭')">家庭</button>
+<button class="btn" onclick="panel('职业')">职业</button>
+<button class="btn" onclick="panel('资产')">资产</button>
+<button class="btn" onclick="panel('关系')">关系</button>
+<button class="btn" onclick="panel('网络')">网络</button>
+<button class="btn" onclick="panel('日志')">日志</button>
+</div>
+<div id="right">
+<div class="card" id="main"></div>
+</div>
+</div>
+
+<script>
+
+const themes=["#2c3e50","#5c4d7d","#7b1e3f","#006d6f","#8a6d3b"];
+const theme=themes[Math.floor(Math.random()*themes.length)];
+document.querySelectorAll(".btn,.action").forEach(b=>b.style.background=theme);
+
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
+function age(){return Math.floor(p.ageMonth/12)}
+function log(t){p.log.push("【"+age()+"岁】"+t)}
+function save(){localStorage.setItem("lifeFinal",JSON.stringify(p))}
+function load(){let d=localStorage.getItem("lifeFinal");if(d)p=JSON.parse(d)}
+
+const surnames=["王","李","张","刘","陈","赵","周","吴","郑","孙"]
+const names=["宇轩","子墨","清宁","若曦","嘉诚","安然","思远","知夏"]
+function newName(){return rand(surnames)+rand(names)}
+
+let p={
+name:newName(),
+ageMonth:0,
+money:20000,
+health:80,
+mental:70,
+charm:50,
+mbti:"????",
+job:"无",
+level:0,
+house:0,
+land:0,
+company:0,
+crime:0,
+prison:0,
+fame:0,
+phone:false,
+family:[],
+children:[],
+relations:[],
+log:[]
+}
+
+if(!localStorage.getItem("lifeFinal")){
+p.family.push({name:newName(),role:"父亲",alive:true})
+p.family.push({name:newName(),role:"母亲",alive:true})
+}
+
+function update(){
+document.getElementById("status").innerHTML=
+`姓名:${p.name} | 年龄:${age()} | 金钱:${p.money} | 职业:${p.job} | 名声:${p.fame}`
+}
+
+function nextMonth(){
+
+if(p.prison>0){
+p.prison--
+p.mental-=3
+log("服刑中")
+update();save();return
+}
+
+p.ageMonth++
+
+if(age()>18)p.money-=2000
+
+lifeStage()
+update()
+save()
+}
+
+function lifeStage(){
+
+if(age()<6){
+event(["在家玩耍","父母争吵","生病住院"])
+}
+
+else if(age()<18){
+choice("学生阶段",["认真读书","逃课","打架"])
+}
+
+else if(age()<60){
+choice("社会阶段",["工作","创业","恋爱","灰色收入"])
+}
+
+else{
+choice("退休生活",["养老","投资","回忆人生"])
+}
+
+}
+
+function event(list){
+let e=rand(list)
+document.getElementById("main").innerHTML="<h3>本月事件</h3>"+e
+log(e)
+}
+
+function choice(title,ops){
+let h="<h3>"+title+"</h3>"
+ops.forEach(o=>{
+h+=`<button class="action" onclick="result('${o}')">${o}</button>`
+})
+document.getElementById("main").innerHTML=h
+}
+
+function result(o){
+
+if(o==="认真读书"){p.mental-=2}
+if(o==="逃课"){p.mental+=2}
+if(o==="打架"){if(Math.random()<0.4)crime(6)}
+
+if(o==="工作"){
+p.job="职员"
+p.level++
+p.money+=3000
+}
+
+if(o==="创业"){
+if(p.money>50000){
+p.company=1
+p.money-=50000
+log("成立公司")
+}
+}
+
+if(o==="恋爱"){
+let r=newName()
+p.relations.push({name:r,like:60})
+log("认识 "+r)
+}
+
+if(o==="灰色收入"){
+p.money+=10000
+p.crime+=1
+if(Math.random()<0.3)crime(12)
+}
+
+if(o==="投资"){
+if(p.money>20000){
+p.money+=Math.floor(Math.random()*20000-10000)
+}
+}
+
+update()
+save()
+}
+
+function crime(m){
+p.prison=m
+p.fame-=20
+log("违法入狱"+m+"个月")
+}
+
+function panel(n){
+
+if(n==="人物"){
+document.getElementById("main").innerHTML=
+`<h3>人物信息</h3>
+姓名:${p.name}<br>
+年龄:${age()}<br>
+健康:${p.health}<br>
+精神:${p.mental}<br>
+魅力:${p.charm}`
+}
+
+if(n==="家庭"){
+let f=p.family.map(x=>x.role+"："+x.name).join("<br>")
+let c=p.children.map(x=>"子女："+x.name).join("<br>")
+document.getElementById("main").innerHTML=
+`<h3>家庭</h3>${f}<br>${c}
+<button class="action" onclick="birth()">生育</button>`
+}
+
+if(n==="职业"){
+document.getElementById("main").innerHTML=
+`<h3>职业</h3>${p.job}<br>等级:${p.level}`
+}
+
+if(n==="资产"){
+document.getElementById("main").innerHTML=
+`<h3>资产</h3>
+现金:${p.money}<br>
+房产:${p.house}<br>
+土地:${p.land}<br>
+公司:${p.company}`
+}
+
+if(n==="关系"){
+let r=p.relations.map(x=>x.name+" 好感:"+x.like).join("<br>")
+document.getElementById("main").innerHTML=`<h3>关系</h3>${r}`
+}
+
+if(n==="网络"){
+if(!p.phone && p.money>3000){
+p.phone=true
+p.money-=3000
+log("购买手机")
+}
+document.getElementById("main").innerHTML=
+`<h3>网络</h3>
+名声:${p.fame}
+<button class="action" onclick="post()">发布内容</button>`
+}
+
+if(n==="日志"){
+document.getElementById("main").innerHTML=
+`<h3>人生记录</h3>${p.log.slice(-30).join("<br>")}`
+}
+
+}
+
+function post(){
+let g=Math.floor(Math.random()*200)
+p.fame+=g
+if(g>150)p.money+=5000
+log("发布内容涨粉"+g)
+update()
+save()
+}
+
+function birth(){
+let child={name:newName()}
+p.children.push(child)
+log("子女出生："+child.name)
+update()
+save()
+}
+
+load()
+update()
+panel("人物")
+
+</script>
+</body>
+</html>
